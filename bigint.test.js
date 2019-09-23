@@ -39,11 +39,15 @@ function int(str) {
     .reverse();
 }
 
+function str(a) {
+  return (a.isNegative ? "-" : "") + a.reverse().join("");
+}
+
 function add(xs, ys) {
   const res = [];
   let overflow = 0;
   for (const [x, y] of zip(xs, ys, 0)) {
-    const sum = overflow + x + y;
+    const sum = x + y + overflow;
     if (sum >= 10) {
       overflow = 1;
       res.push(sum - 10);
@@ -58,9 +62,77 @@ function add(xs, ys) {
   return res;
 }
 
-function str(a) {
-  return a.reverse().join("");
+function sub(xs, ys) {
+  const res = [];
+  let overflow = 0;
+  for (const [x, y] of zip(xs, ys, 0)) {
+    const dif = x - y - overflow;
+    if (dif < 0) {
+      overflow = 1;
+      res.push(10 + dif);
+    } else {
+      overflow = 0;
+      res.push(dif);
+    }
+  }
+
+  let zeroes = 0;
+  // j > 0 to leave the last zero
+  for (let j = res.length - 1; j > 0; j--) {
+    if (res[j] == 0) {
+      zeroes++;
+    }
+    break;
+  }
+  res.length -= zeroes;
+
+  if (overflow != 0) {
+    res.isNegative = true;
+  }
+
+  return res;
 }
+
+function absCmp(xs, ys) {
+  if (xs.length > ys.length) return 1;
+  if (xs.length < ys.length) return -1;
+
+  for (const [x, y] of zip(xs, ys)) {
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+
+  return 0;
+}
+
+describe("absCmp", () => {
+  it("simple", () => {
+    expect(absCmp(int("11"), int("1"))).toBe(1);
+    expect(absCmp(int("1"), int("11"))).toBe(-1);
+    expect(absCmp(int("0"), int("0"))).toBe(0);
+    expect(absCmp(int("1"), int("0"))).toBe(1);
+    expect(absCmp(int("0"), int("1"))).toBe(-1);
+    expect(absCmp(int("1111113"), int("1111112"))).toBe(1);
+    expect(absCmp(int("1111112"), int("1111113"))).toBe(-1);
+  });
+});
+
+describe("minus", () => {
+  it("simple", () => {
+    expect(str(sub(int("11"), int("1")))).toBe("10");
+    expect(str(sub(int("345"), int("123")))).toBe("222");
+    expect(str(sub(int("3456"), int("123")))).toBe("3333");
+  });
+
+  it("overflow", () => {
+    expect(str(sub(int("10"), int("1")))).toBe("9");
+    expect(str(sub(int("100"), int("3")))).toBe("97");
+  });
+
+  it("negative", () => {
+    // expect(str(sub(int("1"), int("2")))).toBe("-1");
+  });
+});
 
 describe("plus", () => {
   it("simple", () => {
@@ -71,5 +143,7 @@ describe("plus", () => {
   it("overflow", () => {
     expect(str(add(int("9"), int("1")))).toBe("10");
     expect(str(add(int("99"), int("1")))).toBe("100");
+    expect(str(add(int("99999"), int("1")))).toBe("100000");
+    expect(str(add(int("99"), int("99")))).toBe("198");
   });
 });
