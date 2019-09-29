@@ -32,12 +32,55 @@ test("zip", () => {
   expect(zip([1, 2, 3], [4, 5, 6], 0)).toEqual([[1, 4], [2, 5], [3, 6]]);
 });
 
-function int(str) {
-  return str
-    .split("")
-    .map(Number)
-    .reverse();
+function norm(xs) {
+  let zeroes = 0;
+  // j > 0 to leave the last zero
+  for (let j = xs.length - 1; j > 0; j--) {
+    if (xs[j] == 0) {
+      zeroes++;
+      continue;
+    }
+    break;
+  }
+  const res = xs.slice(0, xs.length - zeroes);
+  res.isNegative = xs.isNegative;
+  return res;
 }
+
+describe("norm", () => {
+  it("explicit", () => {
+    expect(str(norm([0]))).toBe("0");
+    expect(str(norm([1]))).toBe("1");
+    expect(str(norm([1, 0, 0, 0]))).toBe("1");
+  });
+  it("implicit", () => {
+    // int() calls norm() inside
+    expect(str(int("0"))).toBe("0");
+    expect(str(int("1"))).toBe("1");
+    expect(str(int("001"))).toBe("1");
+    expect(str(int("0001"))).toBe("1");
+    expect(str(int("00000001"))).toBe("1");
+  });
+});
+
+function int(str) {
+  if (str[0] == "-") {
+    const res = str.split("").reverse();
+    res.pop();
+    const neg = res.map(Number);
+    neg.isNegative = true;
+    return norm(neg);
+  } else {
+    return norm(
+      str
+        .split("")
+        .reverse()
+        .map(Number)
+    );
+  }
+}
+
+const ZERO = [0];
 
 function str(a) {
   return (a.isNegative ? "-" : "") + a.reverse().join("");
@@ -65,6 +108,18 @@ function add(xs, ys) {
 function sub(xs, ys) {
   const res = [];
   let overflow = 0;
+
+  if (xs.isNegative || ys.isNegative) throw "negative not supported";
+
+  switch (absCmp(xs, ys)) {
+    case 0:
+      return ZERO;
+    case -1:
+      const res1 = sub(ys, xs);
+      res1.isNegative = true;
+      return res1;
+  }
+
   for (const [x, y] of zip(xs, ys, 0)) {
     const dif = x - y - overflow;
     if (dif < 0) {
@@ -76,21 +131,11 @@ function sub(xs, ys) {
     }
   }
 
-  let zeroes = 0;
-  // j > 0 to leave the last zero
-  for (let j = res.length - 1; j > 0; j--) {
-    if (res[j] == 0) {
-      zeroes++;
-    }
-    break;
-  }
-  res.length -= zeroes;
-
   if (overflow != 0) {
     res.isNegative = true;
   }
 
-  return res;
+  return norm(res);
 }
 
 function absCmp(xs, ys) {
@@ -122,6 +167,7 @@ describe("minus", () => {
     expect(str(sub(int("11"), int("1")))).toBe("10");
     expect(str(sub(int("345"), int("123")))).toBe("222");
     expect(str(sub(int("3456"), int("123")))).toBe("3333");
+    // expect(str(sub(int("888"), int("887")))).toBe("1");
   });
 
   it("overflow", () => {
@@ -129,8 +175,14 @@ describe("minus", () => {
     expect(str(sub(int("100"), int("3")))).toBe("97");
   });
 
+  it("equal", () => {
+    expect(str(sub(int("1"), int("1")))).toBe("0");
+    expect(str(sub(int("123"), int("123")))).toBe("0");
+  });
+
   it("negative", () => {
-    // expect(str(sub(int("1"), int("2")))).toBe("-1");
+    expect(str(sub(int("1"), int("2")))).toBe("-1");
+    expect(str(sub(int("9"), int("11")))).toBe("-2");
   });
 });
 
@@ -145,5 +197,18 @@ describe("plus", () => {
     expect(str(add(int("99"), int("1")))).toBe("100");
     expect(str(add(int("99999"), int("1")))).toBe("100000");
     expect(str(add(int("99"), int("99")))).toBe("198");
+  });
+});
+
+describe("int+str", () => {
+  it("positive", () => {
+    expect(str(int("0"))).toBe("0");
+    expect(str(int("1"))).toBe("1");
+    expect(str(int("1234"))).toBe("1234");
+  });
+  it("negative", () => {
+    expect(str(int("-0"))).toBe("-0");
+    expect(str(int("-1"))).toBe("-1");
+    expect(str(int("-1234"))).toBe("-1234");
   });
 });
