@@ -63,6 +63,28 @@ describe("norm", () => {
   });
 });
 
+function neg(xs) {
+  const res = xs.slice();
+  res.isNegative = !xs.isNegative;
+  return res;
+}
+
+describe("norm", () => {
+  it("explicit", () => {
+    expect(str(norm([0]))).toBe("0");
+    expect(str(norm([1]))).toBe("1");
+    expect(str(norm([1, 0, 0, 0]))).toBe("1");
+  });
+  it("implicit", () => {
+    // int() calls norm() inside
+    expect(str(int("0"))).toBe("0");
+    expect(str(int("1"))).toBe("1");
+    expect(str(int("001"))).toBe("1");
+    expect(str(int("0001"))).toBe("1");
+    expect(str(int("00000001"))).toBe("1");
+  });
+});
+
 function int(str) {
   if (str[0] == "-") {
     const res = str.split("").reverse();
@@ -108,6 +130,10 @@ function add(xs, ys) {
 function sub(xs, ys) {
   const res = [];
   let overflow = 0;
+
+  if (ys.isNegative) {
+    return add(xs, neg(ys));
+  }
 
   if (xs.isNegative || ys.isNegative) throw "negative not supported";
 
@@ -162,31 +188,33 @@ describe("absCmp", () => {
   });
 });
 
-describe("minus", () => {
-  it("simple", () => {
-    expect(str(sub(int("11"), int("1")))).toBe("10");
-    expect(str(sub(int("345"), int("123")))).toBe("222");
-    expect(str(sub(int("3456"), int("123")))).toBe("3333");
-    // expect(str(sub(int("888"), int("887")))).toBe("1");
-  });
-
-  it("overflow", () => {
-    expect(str(sub(int("10"), int("1")))).toBe("9");
-    expect(str(sub(int("100"), int("3")))).toBe("97");
-  });
-
-  it("equal", () => {
+describe("sub", () => {
+  it("equal - equal", () => {
     expect(str(sub(int("1"), int("1")))).toBe("0");
     expect(str(sub(int("123"), int("123")))).toBe("0");
   });
 
-  it("negative", () => {
+  it("bigger - smaller", () => {
+    expect(str(sub(int("11"), int("1")))).toBe("10");
+    expect(str(sub(int("345"), int("123")))).toBe("222");
+    expect(str(sub(int("3456"), int("123")))).toBe("3333");
+    expect(str(sub(int("888"), int("887")))).toBe("1");
+    expect(str(sub(int("10"), int("1")))).toBe("9");
+    expect(str(sub(int("100"), int("3")))).toBe("97");
+  });
+
+  it("smaller - bigger", () => {
     expect(str(sub(int("1"), int("2")))).toBe("-1");
     expect(str(sub(int("9"), int("11")))).toBe("-2");
+    expect(str(sub(int("888"), int("898")))).toBe("-10");
+  });
+
+  it("bigger - (-smaller)", () => {
+    expect(str(sub(int("10"), int("-2")))).toBe("12");
   });
 });
 
-describe("plus", () => {
+describe("add", () => {
   it("simple", () => {
     expect(str(add(int("123"), int("345")))).toBe("468");
     expect(str(add(int("2345"), int("111")))).toBe("2456");
