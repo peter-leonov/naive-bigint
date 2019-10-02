@@ -317,3 +317,22 @@ describe("sub", () => {
     expect(str(sub(int("-1"), int("-1")))).toBe("0");
   });
 });
+
+function multAbs(a, b) {
+  return a;
+}
+
+function mult(a, b) {
+  const res = multAbs(a, b);
+  res.isNegative = a.isNegative ? !b.isNegative : b.isNegative;
+  return res;
+}
+
+describe("mult", () => {
+  it("sign", () => {
+    expect(str(mult(int("1"), int("1")))).toBe("1");
+    expect(str(mult(int("-1"), int("1")))).toBe("-1");
+    expect(str(mult(int("1"), int("-1")))).toBe("-1");
+    expect(str(mult(int("-1"), int("-1")))).toBe("1");
+  });
+});
