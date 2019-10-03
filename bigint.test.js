@@ -32,6 +32,8 @@ test("zip", () => {
   expect(zip([1, 2, 3], [4, 5, 6], 0)).toEqual([[1, 4], [2, 5], [3, 6]]);
 });
 
+const BASE = 10;
+
 function norm(xs) {
   let zeroes = 0;
   // j > 0 to leave the last zero
@@ -76,6 +78,7 @@ function neg(xs) {
 }
 
 function int(str) {
+  str = String(str);
   if (str[0] == "-") {
     const res = str.split("").reverse();
     res.pop();
@@ -144,9 +147,9 @@ function addAbs(xs, ys) {
   let overflow = 0;
   for (const [x, y] of zip(xs, ys, 0)) {
     const sum = x + y + overflow;
-    if (sum >= 10) {
+    if (sum >= BASE) {
       overflow = 1;
-      res.push(sum - 10);
+      res.push(sum - BASE);
     } else {
       overflow = 0;
       res.push(sum);
@@ -236,7 +239,7 @@ function subAbs(xs, ys) {
     const diff = x - y - overflow;
     if (diff < 0) {
       overflow = 1;
-      res.push(10 + diff);
+      res.push(BASE + diff);
     } else {
       overflow = 0;
       res.push(diff);
@@ -318,8 +321,32 @@ describe("sub", () => {
   });
 });
 
-function multAbs(a, b) {
-  return a;
+function multBy(xs, a) {
+  if (a == 0) return ZERO;
+  if (a == 1) return xs;
+
+  const res = [];
+  let overflow = 0;
+  for (const x of xs) {
+    const product = x * a + overflow;
+    const digit = product % BASE;
+    overflow = (product - digit) / BASE;
+    res.push(digit);
+  }
+  if (overflow > 0) res.push(overflow);
+
+  return res;
+}
+
+function multAbs(xs, ys) {
+  let sum = ZERO;
+  let shifted = xs.slice();
+  for (const y of ys) {
+    sum = add(sum, multBy(shifted, y));
+
+    shifted.unshift(0);
+  }
+  return sum;
 }
 
 function mult(a, b) {
@@ -334,5 +361,26 @@ describe("mult", () => {
     expect(str(mult(int("-1"), int("1")))).toBe("-1");
     expect(str(mult(int("1"), int("-1")))).toBe("-1");
     expect(str(mult(int("-1"), int("-1")))).toBe("1");
+  });
+
+  it("simple", () => {
+    expect(str(mult(int("2"), int("3")))).toBe("6");
+    expect(str(mult(int("22"), int("3")))).toBe("66");
+    expect(str(mult(int("123"), int("3")))).toBe("369");
+  });
+
+  it("overflow", () => {
+    expect(str(mult(int("5"), int("2")))).toBe("10");
+    expect(str(mult(int("55"), int("2")))).toBe("110");
+  });
+
+  it("multiple", () => {
+    expect(str(mult(int("123"), int("321")))).toBe("39483");
+    expect(str(mult(int("18234761"), int("98751265")))).toBe(
+      String(18234761 * 98751265)
+    );
+    expect(str(mult(int("9274523659823746518234761"), int("98751265")))).toBe(
+      String(9274523659823746518234761n * 98751265n)
+    );
   });
 });
