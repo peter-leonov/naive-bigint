@@ -364,6 +364,7 @@ describe("mult", () => {
   });
 
   it("simple", () => {
+    expect(str(mult(int("123"), int("0")))).toBe("0");
     expect(str(mult(int("2"), int("3")))).toBe("6");
     expect(str(mult(int("22"), int("3")))).toBe("66");
     expect(str(mult(int("123"), int("3")))).toBe("369");
@@ -382,5 +383,28 @@ describe("mult", () => {
     expect(str(mult(int("9274523659823746518234761"), int("98751265")))).toBe(
       String(9274523659823746518234761n * 98751265n)
     );
+  });
+});
+
+function divAbs(a, b) {
+  return [a[0] / b[0]];
+}
+
+function div(a, b) {
+  const res = divAbs(a, b);
+  res.isNegative = a.isNegative ? !b.isNegative : b.isNegative;
+  return res;
+}
+
+describe("div", () => {
+  it("sign", () => {
+    expect(str(div(int("1"), int("1")))).toBe("1");
+    expect(str(div(int("-1"), int("1")))).toBe("-1");
+    expect(str(div(int("1"), int("-1")))).toBe("-1");
+    expect(str(div(int("-1"), int("-1")))).toBe("1");
+  });
+
+  it("simple", () => {
+    expect(str(div(int("8"), int("2")))).toBe("4");
   });
 });
