@@ -34,6 +34,12 @@ test("zip", () => {
   expect(zip([], [1, 2], 0)).toEqual([[0, 1], [0, 2]]);
   expect(zip([1], [2], 0)).toEqual([[1, 2]]);
   expect(zip([1, 2, 3], [4, 5, 6], 0)).toEqual([[1, 4], [2, 5], [3, 6]]);
+  expect(zip([3, 5, 0, 0], [5, 0, 0, 0], 0)).toEqual([
+    [3, 5],
+    [5, 0],
+    [0, 0],
+    [0, 0]
+  ]);
 });
 
 const BASE = 10;
@@ -64,6 +70,7 @@ describe("norm", () => {
     expect(str(norm([1]))).toBe("1");
     expect(str(norm([1, 0, 0, 0]))).toBe("1");
   });
+
   it("implicit", () => {
     // int() calls norm() inside
     expect(str(int("-0"))).toBe("0");
@@ -113,6 +120,7 @@ describe("int+str", () => {
     expect(str(int("1"))).toBe("1");
     expect(str(int("1234"))).toBe("1234");
   });
+
   it("negative", () => {
     expect(str(int("-0"))).toBe("0");
     expect(str(int("-1"))).toBe("-1");
@@ -120,12 +128,12 @@ describe("int+str", () => {
   });
 });
 
-function absCmp(xs, ys) {
+function absCmp(a, b) {
   // expect xs and ys are normalised
-  if (xs.length > ys.length) return 1;
-  if (xs.length < ys.length) return -1;
+  if (a.length > b.length) return 1;
+  if (a.length < b.length) return -1;
 
-  for (const [x, y] of zip(xs, ys)) {
+  for (const [x, y] of zip(a, b, 0).reverse()) {
     if (x > y) return 1;
     if (x < y) return -1;
   }
@@ -145,6 +153,8 @@ describe("absCmp", () => {
     expect(absCmp(int("0"), int("1"))).toBe(-1);
     expect(absCmp(int("1111113"), int("1111112"))).toBe(1);
     expect(absCmp(int("1111112"), int("1111113"))).toBe(-1);
+    expect(absCmp(int("3500"), int("5000"))).toBe(-1);
+    expect(absCmp(int("21"), int("1200"))).toBe(-1);
   });
 });
 
@@ -303,6 +313,7 @@ describe("sub", () => {
     expect(str(sub(int("888"), int("887")))).toBe("1");
     expect(str(sub(int("10"), int("1")))).toBe("9");
     expect(str(sub(int("100"), int("3")))).toBe("97");
+    expect(str(sub(int("3500"), int("500")))).toBe("3000");
   });
 
   it("smaller - bigger", () => {
@@ -414,6 +425,7 @@ describe("eqZero", () => {
   it("zero", () => {
     expect(eqZero(int("0"))).toBe(true);
   });
+
   it("non-zero", () => {
     expect(eqZero(int("1"))).toBe(false);
     expect(eqZero(int("10"))).toBe(false);
@@ -444,27 +456,31 @@ describe("modExp", () => {
   it("smaller", () => {
     expect(modExp(int("10"), int("50"))).toBe(false);
   });
+
   it("equal", () => {
     expect(modExp(int("10"), int("10"))).toEqual([int("1"), ZERO]);
   });
+
   it("mod zero", () => {
     expect(modExp(int("100"), int("1"))).toEqual([int("100"), ZERO]);
     expect(modExp(int("450"), int("45"))).toEqual([int("10"), ZERO]);
     expect(modExp(int("7000"), int("70"))).toEqual([int("100"), ZERO]);
   });
+
   it("with mod", () => {
     expect(modExp(int("101"), int("1"))).toEqual([int("100"), int("1")]);
     expect(modExp(int("467"), int("45"))).toEqual([int("10"), int("17")]);
     expect(modExp(int("9000"), int("70"))).toEqual([int("100"), int("2000")]);
+    expect(modExp(int("4000"), int("5"))).toEqual([int("100"), int("3500")]);
+    expect(modExp(int("3500"), int("5"))).toEqual([int("100"), int("3000")]);
   });
 });
 
 function divAbs(a, b) {
   let rest = a;
   let quotient = ZERO;
-  for (let i = 0; i < 1000; i++) {
+  for (;;) {
     const r = modExp(rest, b);
-    console.log(r);
     if (!r) {
       // rest < b
       break;
@@ -472,7 +488,6 @@ function divAbs(a, b) {
     const [mult, mod] = r;
     quotient = addAbs(quotient, mult);
     rest = mod;
-    if (i > 500) throw "too deep";
   }
   // rest here = a % b
   return quotient;
@@ -502,8 +517,8 @@ describe("div", () => {
   });
 
   it("simple", () => {
-    // expect(str(div(int("8"), int("2")))).toBe("4");
-    // expect(str(div(int("88"), int("2")))).toBe("44");
+    expect(str(div(int("8"), int("2")))).toBe("4");
+    expect(str(div(int("88"), int("2")))).toBe("44");
   });
 
   it("equal", () => {
@@ -530,5 +545,39 @@ describe("div", () => {
   it("overflow", () => {
     expect(str(div(int("5000"), int("5")))).toBe("1000");
     expect(str(div(int("4000"), int("5")))).toBe("800");
+    expect(str(div(int("5500"), int("5")))).toBe("1100");
+    expect(str(div(int("3528"), int("5")))).toBe("705");
+  });
+
+  it("big / big", () => {
+    expect(str(div(int("2374918236873462341628346"), int("19238462345")))).toBe(
+      String(2374918236873462341628346n / 19238462345n)
+    );
+    expect(
+      str(
+        div(
+          int("8748523465826348957629834658273468957263845762834756"),
+          int("29345682736598637465374656547657465728")
+        )
+      )
+    ).toBe(
+      String(
+        8748523465826348957629834658273468957263845762834756n /
+          29345682736598637465374656547657465728n
+      )
+    );
+  });
+
+  it("big / small", () => {
+    expect(
+      str(
+        div(
+          int("8748523465826348957629834658273468957263845762834756"),
+          int("123")
+        )
+      )
+    ).toBe(
+      String(8748523465826348957629834658273468957263845762834756n / 123n)
+    );
   });
 });
